@@ -125,7 +125,8 @@ function formatCloseDuration(ms) {
 
 function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = null) {
     const panelChannel = config.ticketPanelChannelId ? `<#${config.ticketPanelChannelId}>` : '`Not set`';
-    const staffRole = config.ticketStaffRoleId ? `<@&${config.ticketStaffRoleId}>` : '`Not set`';
+    const rolesList = config.supportRoles || (config.ticketStaffRoleId ? [config.ticketStaffRoleId] : []);
+    const staffRole = rolesList.length > 0 ? rolesList.map(id => `<@&${id}>`).join(', ') : '`Not set`';
     const ticketLogsChannel = config.ticketLogsChannelId ? `<#${config.ticketLogsChannelId}>` : '`Not set`';
     const transcriptChannel = config.ticketTranscriptChannelId ? `<#${config.ticketTranscriptChannelId}>` : '`Not set`';
 
@@ -457,17 +458,23 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
 
     const roleSelect = new RoleSelectMenuBuilder()
         .setCustomId('ticket_cfg_staff_role')
-        .setPlaceholder('Select the staff role...')
-        .setMaxValues(1);
+        .setPlaceholder('Select the staff roles...')
+        .setMinValues(1)
+        .setMaxValues(5);
 
     const row = new ActionRowBuilder().addComponents(roleSelect);
+
+    const currentRoles = guildConfig.supportRoles || (guildConfig.ticketStaffRoleId ? [guildConfig.ticketStaffRoleId] : []);
+    const currentRolesFormatted = currentRoles.length > 0 
+        ? currentRoles.map(id => `<@&${id}>`).join(', ') 
+        : '`Not set`';
 
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('🛡️ Change Staff Role')
+                .setTitle('🛡️ Change Staff Roles')
                 .setDescription(
-                    `**Current:** ${guildConfig.ticketStaffRoleId ? `<@&${guildConfig.ticketStaffRoleId}>` : '`Not set`'}\n\nSelect the role that should have staff access to manage tickets.`,
+                    `**Current:** ${currentRolesFormatted}\n\nSelect the roles that should have staff access to manage tickets.`,
                 )
                 .setColor(getColor('info')),
         ],
@@ -485,13 +492,18 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
 
     roleCollector.on('collect', async roleInteraction => {
         await roleInteraction.deferUpdate();
-        const role = roleInteraction.roles.first();
+        
+        const selectedRoleIds = Array.from(roleInteraction.roles.keys());
 
-        guildConfig.ticketStaffRoleId = role.id;
+        guildConfig.supportRoles = selectedRoleIds;
+        guildConfig.ticketStaffRoleId = selectedRoleIds[0] || null;
+
         await setGuildConfig(client, guildId, guildConfig);
 
+        const rolesFormatted = selectedRoleIds.map(id => `<@&${id}>`).join(', ');
+
         await roleInteraction.followUp({
-            embeds: [successEmbed('Staff Role Updated', `Staff role set to ${role}.`)],
+            embeds: [successEmbed('Staff Roles Updated', `Staff roles set to: ${rolesFormatted}`)],
             flags: MessageFlags.Ephemeral,
         });
 
@@ -502,12 +514,11 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
         if (reason === 'time' && collected.size === 0) {
             replyUserError(selectInteraction, {
                 type: ErrorTypes.RATE_LIMIT,
-                message: 'No role was selected. The staff role was not changed.',
+                message: 'No roles were selected. The staff roles were not changed.',
             }).catch(() => {});
         }
     });
 }
-
 async function handleOpenCategory(selectInteraction, rootInteraction, guildConfig, guildId, client) {
     await selectInteraction.deferUpdate();
 
