@@ -13,49 +13,45 @@ export default {
                 .setName('query')
                 .setDescription('Songname oder URL')
                 .setRequired(true)
-                .setAutocomplete(true), // Live-Suchvorschläge aktivieren
+                .setAutocomplete(true),
         ),
 
     async autocomplete(interaction, client) {
         const focusedValue = interaction.options.getFocused();
-        if (!focusedValue || focusedValue.length < 2) {
+        if (!focusedValue || focusedValue.trim().length < 2) {
             return interaction.respond([]);
         }
 
         try {
-            // Nutzt den Lavalink-Node deines Clients für die Suche
-            const node = client.lavalink?.node || client.manager?.node;
-            
-            // Falls dein Client `poru`, `erela.js`, `kazagumo` oder standard `lavalink` nutzt:
-            const player = client.manager || client.poru || client.lavalink;
+            // Greift dynamisch auf die bestehende Musik-Instanz deines Bots zu
+            const manager = client.manager || client.poru || client.lavalink || client.kazagumo || client.player;
 
-            if (!player) {
+            if (!manager) {
                 return interaction.respond([]);
             }
 
-            // Führe eine Suchanfrage über deinen Music-Manager durch (YouTube/Spotify)
-            const res = await player.search({
-                query: focusedValue,
-                source: 'ytsearch',
-                requester: interaction.user,
-            });
-
+            // Suche über den aktiven Musik-Manager durchführen
+            const res = await manager.search(focusedValue, { requester: interaction.user });
+            
             if (!res || !res.tracks || res.tracks.length === 0) {
                 return interaction.respond([]);
             }
 
-            // Formatiere maximal 25 Suchergebnisse für Discord
+            // Maximal 25 Ergebnisse für das Discord Dropdown-Menü formatieren
             const results = res.tracks.slice(0, 25).map((track) => {
-                const title = `${track.info.author} - ${track.info.title}`;
+                const author = track.info?.author || track.author || 'Unbekannt';
+                const title = track.info?.title || track.title || 'Unbekannter Titel';
+                const displayName = `${author} - ${title}`;
+                
                 return {
-                    name: title.length > 100 ? title.substring(0, 97) + '...' : title,
-                    value: track.info.uri || track.info.title,
+                    name: displayName.length > 100 ? displayName.substring(0, 97) + '...' : displayName,
+                    value: track.info?.uri || track.info?.title || track.title || focusedValue,
                 };
             });
 
             await interaction.respond(results);
         } catch (error) {
-            // Verhindert Abstürze bei Abbruch der Suche
+            // Bei Abbrüchen oder Fehlern leere Antwort senden, damit Discord nicht fehlschlägt
             await interaction.respond([]).catch(() => {});
         }
     },
