@@ -13,7 +13,7 @@ export default {
                 .setName('query')
                 .setDescription('Songname oder URL')
                 .setRequired(true)
-                .setAutocomplete(true),
+                .setAutocomplete(true), // Live-Vorschläge aktiviert
         ),
 
     async autocomplete(interaction, client) {
@@ -23,35 +23,37 @@ export default {
         }
 
         try {
-            // Greift dynamisch auf die bestehende Musik-Instanz deines Bots zu
-            const manager = client.manager || client.poru || client.lavalink || client.kazagumo || client.player;
-
-            if (!manager) {
+            // Holt die Riffy-Instanz aus dem Client (je nach Setup client.riffy oder client.manager)
+            const riffy = client.riffy || client.manager;
+            if (!riffy) {
                 return interaction.respond([]);
             }
 
-            // Suche über den aktiven Musik-Manager durchführen
-            const res = await manager.search(focusedValue, { requester: interaction.user });
-            
+            // Führt die Suche über Riffy durch
+            const res = await riffy.resolve({
+                query: focusedValue,
+                requester: interaction.user,
+            });
+
             if (!res || !res.tracks || res.tracks.length === 0) {
                 return interaction.respond([]);
             }
 
-            // Maximal 25 Ergebnisse für das Discord Dropdown-Menü formatieren
+            // Formatiert bis zu 25 Tracks für das Discord-Dropdown
             const results = res.tracks.slice(0, 25).map((track) => {
-                const author = track.info?.author || track.author || 'Unbekannt';
-                const title = track.info?.title || track.title || 'Unbekannter Titel';
+                const author = track.info?.author || 'Unbekannt';
+                const title = track.info?.title || 'Unbekannter Titel';
                 const displayName = `${author} - ${title}`;
                 
                 return {
                     name: displayName.length > 100 ? displayName.substring(0, 97) + '...' : displayName,
-                    value: track.info?.uri || track.info?.title || track.title || focusedValue,
+                    value: track.info?.uri || track.info?.title || focusedValue,
                 };
             });
 
             await interaction.respond(results);
         } catch (error) {
-            // Bei Abbrüchen oder Fehlern leere Antwort senden, damit Discord nicht fehlschlägt
+            // Fängt Fehler ab, damit das Menü nicht einfriert
             await interaction.respond([]).catch(() => {});
         }
     },
