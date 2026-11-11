@@ -13,7 +13,7 @@ export default {
                 .setName('query')
                 .setDescription('Songname oder URL')
                 .setRequired(true)
-                .setAutocomplete(true), // Live-Vorschläge aktiviert
+                .setAutocomplete(true), // Autocomplete für Discord aktivieren
         ),
 
     async autocomplete(interaction, client) {
@@ -23,13 +23,13 @@ export default {
         }
 
         try {
-            // Holt die Riffy-Instanz aus dem Client (je nach Setup client.riffy oder client.manager)
+            // Holt die Riffy-Instanz des Bots
             const riffy = client.riffy || client.manager;
             if (!riffy) {
                 return interaction.respond([]);
             }
 
-            // Führt die Suche über Riffy durch
+            // Sucht über Riffy nach passenden Tracks
             const res = await riffy.resolve({
                 query: focusedValue,
                 requester: interaction.user,
@@ -39,12 +39,12 @@ export default {
                 return interaction.respond([]);
             }
 
-            // Formatiert bis zu 25 Tracks für das Discord-Dropdown
+            // Maximal 25 Suchvorschläge an Discord senden
             const results = res.tracks.slice(0, 25).map((track) => {
-                const author = track.info?.author || 'Unbekannt';
+                const author = track.info?.author || 'Unbekannter Künstler';
                 const title = track.info?.title || 'Unbekannter Titel';
                 const displayName = `${author} - ${title}`;
-                
+
                 return {
                     name: displayName.length > 100 ? displayName.substring(0, 97) + '...' : displayName,
                     value: track.info?.uri || track.info?.title || focusedValue,
@@ -53,7 +53,6 @@ export default {
 
             await interaction.respond(results);
         } catch (error) {
-            // Fängt Fehler ab, damit das Menü nicht einfriert
             await interaction.respond([]).catch(() => {});
         }
     },
