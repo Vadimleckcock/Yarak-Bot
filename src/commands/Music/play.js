@@ -44,7 +44,7 @@ export default {
 
                 return {
                     name: displayName.length > 100 ? displayName.substring(0, 97) + '...' : displayName,
-                    value: track.info?.title || focusedValue, // Korrigiert: Nur den Titel übergeben
+                    value: track.info?.title || focusedValue,
                 };
             });
 
