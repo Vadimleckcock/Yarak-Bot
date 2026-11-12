@@ -40,6 +40,7 @@ export default {
             }
 
             // Maximal 25 Suchvorschläge an Discord senden
+           // Maximal 25 Ergebnisse für das Dropdown formatieren
             const results = res.tracks.slice(0, 25).map((track) => {
                 const author = track.info?.author || 'Unbekannter Künstler';
                 const title = track.info?.title || 'Unbekannter Titel';
@@ -47,7 +48,7 @@ export default {
 
                 return {
                     name: displayName.length > 100 ? displayName.substring(0, 97) + '...' : displayName,
-                    value: track.info?.uri || track.info?.title || focusedValue,
+                    value: displayName, // Übergibt den Text statt des direkten Links
                 };
             });
 
