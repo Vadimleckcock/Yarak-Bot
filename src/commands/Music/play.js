@@ -13,7 +13,7 @@ export default {
                 .setName('query')
                 .setDescription('Songname oder URL')
                 .setRequired(true)
-                .setAutocomplete(true), // Autocomplete für Discord aktivieren
+                .setAutocomplete(true),
         ),
 
     async autocomplete(interaction, client) {
@@ -23,13 +23,11 @@ export default {
         }
 
         try {
-            // Holt die Riffy-Instanz des Bots
             const riffy = client.riffy || client.manager;
             if (!riffy) {
                 return interaction.respond([]);
             }
 
-            // Sucht über Riffy nach passenden Tracks
             const res = await riffy.resolve({
                 query: focusedValue,
                 requester: interaction.user,
@@ -39,8 +37,6 @@ export default {
                 return interaction.respond([]);
             }
 
-            // Maximal 25 Suchvorschläge an Discord senden
-           // Maximal 25 Ergebnisse für das Dropdown formatieren
             const results = res.tracks.slice(0, 25).map((track) => {
                 const author = track.info?.author || 'Unbekannter Künstler';
                 const title = track.info?.title || 'Unbekannter Titel';
@@ -48,7 +44,7 @@ export default {
 
                 return {
                     name: displayName.length > 100 ? displayName.substring(0, 97) + '...' : displayName,
-                    value: displayName, // Übergibt den Text statt des direkten Links
+                    value: track.info?.title || focusedValue, // Korrigiert: Nur den Titel übergeben
                 };
             });
 
