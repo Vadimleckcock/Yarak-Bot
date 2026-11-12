@@ -39,7 +39,8 @@ async function getAllFiles(directory, fileList = []) {
         const filePath = path.join(directory, file.name);
         
         if (file.isDirectory()) {
-            if (file.name === 'modules') {
+            // Hier schließen wir modules UND economy direkt aus!
+            if (file.name === 'modules' || file.name.toLowerCase() === 'economy') {
                 continue;
             }
             await getAllFiles(filePath, fileList);
